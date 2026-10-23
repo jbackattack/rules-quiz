@@ -361,7 +361,7 @@ boot();
     rows.slice(1).forEach(function(r){
       var sp=(r[ix("sport")]||"").trim().toLowerCase(), pool=(r[ix("pool")]||"").trim().toLowerCase(), qt=(r[ix("question")]||"").trim();
       if(!sp||!qt||(pool!=="rules"&&pool!=="nj")) return;
-      var o=[]; L.forEach(function(l){ var v=ix(l)>=0?(r[ix(l)]||"").trim():""; if(v) o.push(v); });
+      var o=[]; L.forEach(function(l){ var v=ix(l)>=0?(r[ix(l)]||"").trim():""; if(v) o.push(v==="TRUE"?"True":v==="FALSE"?"False":v); });
       var a=L.indexOf((r[ix("answer")]||"").trim().toLowerCase());
       if(o.length<2||a<0||a>=o.length) return;
       var fx=(r[ix("fixed_order")]||"").trim().toLowerCase();
