@@ -1,0 +1,5 @@
+sport,pool,id,question,A,B,C,D,E,F,answer,fixed_order
+baseball,rules,ex-b-1,Example: how many strikes make a strikeout?,Two,Three,Four,Five,,,B,
+baseball,rules,ex-b-2,Example: a batter hit by a pitch is awarded first base.,True,False,,,,,A,yes
+baseball,nj,ex-b-nj1,Example state-handbook question?,Yes,No,,,,,A,yes
+softball,rules,ex-s-1,Example: how many players are on defense?,Eight,Nine,Ten,Eleven,,,B,

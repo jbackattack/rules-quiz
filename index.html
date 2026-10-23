@@ -109,8 +109,9 @@ body:not([data-view="prog"]) #progview{display:none}
   <div id="done"></div>
   <p class="note">Each test is drawn from a larger question bank. Questions you have not seen, or have missed, come up first, and the page remembers this, and saves it to your account when you are signed in. Refreshing the page starts a new test. Baseball rules questions come from the 2025 NFHS Baseball Case Book and the NJ questions from the 2026 NJSIAA Baseball Presentation and study guide. Some softball questions come from the 2026 NFHS Softball Rules PowerPoint. Handbook answers (the NJSIAA Officials Handbook items) are inferred from the study guide wording, so check them against the handbook.</p>
 </div>
-<script src="bank.js"></script>
-<script>
+<script src="config.js"></script>
+<script src="bank.js" onerror="void 0"></script>
+<script id="app" type="text/plain">
 var BANK=window.BANK||{baseball:{rules:[],nj:[]},softball:{rules:[],nj:[]}};
 var NAMES={baseball:"Baseball",softball:"Softball"};
 var cur="baseball", tests={}, L="abcdef";
@@ -336,6 +337,60 @@ $("retake").onclick=function(){
 };
 newTest(cur,60); renderTabs(); renderList();
 boot();
+</script>
+<script>
+/* Loads the question bank, then starts the app.
+   Order: Google Sheet (see config.js) -> last copy saved on this device -> bank.js next to this page. */
+(function(){
+  var CK="umpire-bank-v1";
+  function parseCSV(t){
+    var rows=[],r=[],f="",q=false,i,c;
+    for(i=0;i<t.length;i++){ c=t[i];
+      if(q){ if(c==='"'){ if(t[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+      else if(c==='"') q=true;
+      else if(c===","){ r.push(f); f=""; }
+      else if(c==="\n"){ r.push(f); rows.push(r); r=[]; f=""; }
+      else if(c!=="\r") f+=c;
+    }
+    if(f!==""||r.length){ r.push(f); rows.push(r); }
+    return rows;
+  }
+  function toBank(rows){
+    var h=rows[0].map(function(x){return x.trim().toLowerCase();}), ix=function(n){return h.indexOf(n);};
+    var L=["a","b","c","d","e","f"], bank={}, n=0;
+    rows.slice(1).forEach(function(r){
+      var sp=(r[ix("sport")]||"").trim().toLowerCase(), pool=(r[ix("pool")]||"").trim().toLowerCase(), qt=(r[ix("question")]||"").trim();
+      if(!sp||!qt||(pool!=="rules"&&pool!=="nj")) return;
+      var o=[]; L.forEach(function(l){ var v=ix(l)>=0?(r[ix(l)]||"").trim():""; if(v) o.push(v); });
+      var a=L.indexOf((r[ix("answer")]||"").trim().toLowerCase());
+      if(o.length<2||a<0||a>=o.length) return;
+      var fx=(r[ix("fixed_order")]||"").trim().toLowerCase();
+      var k=(r[ix("id")]||"").trim()||String(qt.length)+qt.slice(0,12);
+      (bank[sp]=bank[sp]||{rules:[],nj:[]})[pool].push({q:qt,o:o,a:a,f:(fx==="yes"||fx==="true"||fx==="1")?1:0,k:k}); n++;
+    });
+    return n?bank:null;
+  }
+  function msg(t){ var l=document.getElementById("list"); if(l) l.innerHTML='<p class="note">'+t+'</p>'; }
+  function start(b){
+    window.BANK=b||window.BANK||{baseball:{rules:[],nj:[]},softball:{rules:[],nj:[]}};
+    var total=0; Object.keys(window.BANK).forEach(function(s){total+=window.BANK[s].rules.length+window.BANK[s].nj.length;});
+    var sc=document.createElement("script"); sc.textContent=document.getElementById("app").textContent; document.body.appendChild(sc);
+    if(!total) msg("No questions loaded. Set SHEET_ID in config.js, or put a bank.js next to this page.");
+  }
+  function fetchSheet(id){
+    var urls=["https://docs.google.com/spreadsheets/d/"+id+"/export?format=csv","https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:csv"];
+    return urls.reduce(function(p,u){ return p.catch(function(){ return fetch(u).then(function(r){ if(!r.ok) throw 0; return r.text(); }); }); },Promise.reject()).then(function(t){
+      var b=toBank(parseCSV(t)); if(!b) throw 0; return b;
+    });
+  }
+  var id=(window.SHEET_ID||"").trim();
+  if(!id){ start(); return; }
+  msg("Loading questions…");
+  fetchSheet(id).then(function(b){ try{ localStorage.setItem(CK,JSON.stringify(b)); }catch(e){} start(b); }).catch(function(){
+    var c=null; try{ c=JSON.parse(localStorage.getItem(CK)||"null"); }catch(e){}
+    if(c) start(c); else start();
+  });
+})();
 </script>
 
 </body></html>
