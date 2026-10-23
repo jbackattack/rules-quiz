@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Umpire Test Quiz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: one centered column; sticky scoreboard on top, one question card per question, instant right/wrong feedback on tap. */
+:root{
+  --bg:#eef2ef; --surface:#ffffff; --fg:#17211c; --muted:#5b6b62; --line:#d3dcd6;
+  --accent:#1f6b4a; --accent-fg:#ffffff;
+  --ok-bg:#dff3e6; --ok-line:#2e8b57; --ok-fg:#12482b;
+  --bad-bg:#fbe3e1; --bad-line:#c0392b; --bad-fg:#7a1d14;
+  --hover:#f3f7f4;
+  --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101612; --surface:#18211b; --fg:#e7eee9; --muted:#9bada1; --line:#2c3a31;
+    --accent:#4cc38a; --accent-fg:#0b1a12;
+    --ok-bg:#16382a; --ok-line:#3fb677; --ok-fg:#bdeed3;
+    --bad-bg:#3d1c19; --bad-line:#e0645a; --bad-fg:#f6c3be;
+    --hover:#1e2a22; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101612; --surface:#18211b; --fg:#e7eee9; --muted:#9bada1; --line:#2c3a31;
+  --accent:#4cc38a; --accent-fg:#0b1a12;
+  --ok-bg:#16382a; --ok-line:#3fb677; --ok-fg:#bdeed3;
+  --bad-bg:#3d1c19; --bad-line:#e0645a; --bad-fg:#f6c3be;
+  --hover:#1e2a22; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.45;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:720px;margin-inline:auto}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--font-display);font-weight:700;font-size:1.9rem;letter-spacing:.01em;margin:0 0 10px;text-wrap:balance}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tab{font:inherit;font-family:var(--font-display);font-weight:600;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;padding:7px 16px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.score{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.score b{font-family:var(--font-display);font-size:1.5rem}
+.bar{flex:1 1 120px;height:8px;background:var(--line);min-width:80px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.reset{font:inherit;font-size:.9rem;padding:6px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.reset:hover,.tab:hover{filter:brightness(.97)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.part{font-family:var(--font-display);font-weight:600;font-size:1.15rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:28px 0 8px}
+.card{background:var(--surface);border:1px solid var(--line);padding:16px;margin-top:12px}
+.qn{font-family:var(--font-display);font-weight:700;font-size:1.05rem;color:var(--accent);letter-spacing:.04em}
+.q{margin:2px 0 12px;font-weight:500}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;font:inherit;color:var(--fg);background:var(--surface);border:1.5px solid var(--line);padding:10px 12px;cursor:pointer;min-width:0}
+.opt:hover:not(:disabled){background:var(--hover);border-color:var(--accent)}
+.opt .l{font-family:var(--font-display);font-weight:700;text-transform:uppercase;min-width:1.1em}
+.opt .t{min-width:0;overflow-wrap:anywhere}
+.opt:disabled{cursor:default;opacity:1}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-fg)}
+.opt.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad-fg)}
+.fb{margin-top:10px;font-weight:600;font-size:.95rem}
+.fb.ok{color:var(--ok-fg)} .fb.bad{color:var(--bad-fg)}
+.done{margin-top:24px;padding:16px;border:1.5px solid var(--accent);background:var(--surface)}
+.done h2{font-family:var(--font-display);margin:0 0 4px;font-size:1.5rem}
+.note{color:var(--muted);font-size:.85rem;margin-top:24px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{font:inherit;font-size:.9rem;padding:6px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.45;cursor:default}
+.ctl select{font:inherit;font-size:.9rem;padding:6px 8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.stats{color:var(--muted);font-size:.85rem;margin-top:8px}
+.done .btn{margin-top:10px;margin-right:8px}
+.acct{font-size:.85rem;color:var(--muted);margin:-4px 0 8px}
+.acct .on{color:var(--ok-fg);background:var(--ok-bg);border:1px solid var(--ok-line);padding:2px 8px;display:inline-block}
+.views{display:flex;gap:8px;margin-bottom:10px}
+.vbtn{font:inherit;font-size:.9rem;padding:5px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.vbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--hover);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+body[data-view="prog"] .score,body[data-view="prog"] .ctl,body[data-view="prog"] .stats,body[data-view="prog"] #list,body[data-view="prog"] #done,body[data-view="prog"] .tabs{display:none}
+body:not([data-view="prog"]) #progview{display:none}
+.ph{font-family:var(--font-display);font-size:1.5rem;margin:18px 0 8px}
+.ps{background:var(--surface);border:1px solid var(--line);padding:14px 16px;margin-bottom:14px}
+.ps h3{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px;font-size:1.2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:10px}
+.grid div{display:flex;flex-direction:column}
+.grid b{font-family:var(--font-display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.grid span{color:var(--muted);font-size:.8rem}
+.ps details{margin-top:12px}.ps summary{cursor:pointer;font-weight:600}
+.ml{list-style:none;margin:8px 0 0;padding:0}.ml li{padding:8px 0;border-top:1px solid var(--line)}
+.ma{color:var(--ok-fg);font-size:.9rem;margin-top:2px}.ma em{color:var(--muted)}
+.pa{margin:6px 0 24px}
+</style>
+
+</head><body>
+<div class="wrap">
+  <div class="top">
+    <h1>Umpire Test Quiz</h1>
+    <div class="acct" id="acct"><span id="acctmsg">Checking sign-in…</span></div>
+    <div class="views"><button class="vbtn" id="vquiz" type="button" aria-pressed="true">Quiz</button><button class="vbtn" id="vprog" type="button" aria-pressed="false">My progress</button></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="score"><span><b id="correct">0</b> correct of <b id="answered">0</b> answered</span><div class="bar"><i id="fill"></i></div><span id="total"></span></div>
+    <div class="ctl">
+      <button class="btn pri" id="newtest" type="button">New test</button>
+      <button class="btn" id="retake" type="button">Retake same questions</button>
+      <button class="btn" id="review" type="button">Review missed</button>
+      <label>Length <select id="len"><option value="20">20</option><option value="40">40</option><option value="60" selected>60</option><option value="100">100</option></select></label>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div id="progview"></div>
+  <div id="list"></div>
+  <div id="done"></div>
+  <p class="note">Each test is drawn from a larger question bank. Questions you have not seen, or have missed, come up first, and the page remembers this, and saves it to your account when you are signed in. Refreshing the page starts a new test. Baseball rules questions come from the 2025 NFHS Baseball Case Book and the NJ questions from the 2026 NJSIAA Baseball Presentation and study guide. Some softball questions come from the 2026 NFHS Softball Rules PowerPoint. Handbook answers (the NJSIAA Officials Handbook items) are inferred from the study guide wording, so check them against the handbook.</p>
+</div>
+<script src="bank.js"></script>
+<script>
+var BANK=window.BANK||{baseball:{rules:[],nj:[]},softball:{rules:[],nj:[]}};
+var NAMES={baseball:"Baseball",softball:"Softball"};
+var cur="baseball", tests={}, L="abcdef";
+var $=function(id){return document.getElementById(id)};
+
+/* memory: per-question attempts (s), wrong (w), last result (l: 1 right, 0 wrong), time (t).
+   Saved on this device and, when signed in, to the viewer's private account storage. */
+var MEM={}, UID=null, NAME="", DB=null, SYNC="local", saveTimer=null, lsKey="umpire-mem-v1";
+function lsRead(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
+MEM=lsRead(lsKey);
+function cloudRef(){ return DB.doc("data/users/"+UID+"/progress"); }
+function saveMem(){
+  try{ localStorage.setItem(lsKey,JSON.stringify(MEM)); }catch(e){}
+  if(DB&&UID&&SYNC!=="readonly"){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(function(){
+      setSync("saving");
+      cloudRef().set({v:1,m:MEM}).then(function(){setSync("synced");}).catch(function(e){
+        setSync(e&&e.code==="invalid_argument"?"readonly":"error");
+      });
+    },1200);
+  }
+}
+function rec(k){ return MEM[k]||(MEM[k]={s:0,w:0,l:-1,t:0}); }
+function mergeMem(a,b){
+  var out={}, k;
+  for(k in a) out[k]=a[k];
+  for(k in b){ var x=out[k], y=b[k]; if(!x||(y.t||0)>(x.t||0)||((y.t||0)===(x.t||0)&&y.s>x.s)) out[k]=y; }
+  return out;
+}
+function setSync(st){
+  SYNC=st; var m=$("acctmsg"); if(!m) return;
+  var who=NAME?NAME:"your account";
+  var txt={
+    local:"Not signed in. Progress is saved on this device only.",
+    saving:"Signed in as "+who+". Saving progress…",
+    synced:"Signed in as "+who+". Progress is saved to your account.",
+    readonly:"Signed in as "+who+", but you have view-only access, so progress is saved on this device only.",
+    error:"Signed in as "+who+". Could not reach your account storage; progress is saved on this device and will retry."
+  }[st];
+  m.textContent=txt; m.className=(st==="synced"||st==="saving")?"on":"";
+}
+async function boot(){
+  try{
+    if(!window.claude||!claude.use){ setSync("local"); return; }
+    var U=await claude.use("user");
+    if(U){
+      UID=await U.id();
+      try{ var me=await U.me(); NAME=(me&&me.name)||""; }catch(e){}
+    }
+    DB=await claude.use("db");
+    if(!DB||!UID){ DB=null; setSync("local"); return; }
+    lsKey="umpire-mem-v2-"+UID;
+    var cloud={};
+    try{ var snap=await cloudRef().get(); if(snap.exists){ var d=snap.data(); cloud=(d&&d.m)||{}; } }
+    catch(e){ if(e&&e.code==="invalid_argument"){ setSync("readonly"); } }
+    MEM=mergeMem(mergeMem(lsRead("umpire-mem-v1"),lsRead(lsKey)),cloud);
+    try{ localStorage.setItem(lsKey,JSON.stringify(MEM)); }catch(e){}
+    if(SYNC!=="readonly"){ setSync("synced"); saveMem(); }
+    var T=tests[cur];
+    if(T&&!T.items.some(function(q){return q.pick>=0;})){ newTest(cur,+$("len").value); renderList(); }
+    else updateScore();
+    if(document.body.dataset.view==="prog") renderProgress();
+  }catch(e){ setSync("local"); }
+}
+
+function shuffle(a){ for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+function weight(q){ var r=MEM[q.k]; if(!r||!r.s) return 4; return r.l===0?3:1; }
+function pick(pool,n){
+  var keyed=pool.map(function(q){ return {q:q,key:-Math.log(Math.random()||1e-9)/weight(q)}; });
+  keyed.sort(function(a,b){return a.key-b.key});
+  return keyed.slice(0,n).map(function(x){return x.q});
+}
+function prep(q,part){
+  var idx=q.o.map(function(_,i){return i});
+  if(!q.f) shuffle(idx);
+  return {k:q.k,q:q.q,o:idx.map(function(i){return q.o[i]}),a:idx.indexOf(q.a),part:part,pick:-1};
+}
+function newTest(sport,len,missedOnly){
+  var b=BANK[sport], items=[];
+  if(missedOnly){
+    var miss=b.rules.concat(b.nj).filter(function(q){var r=MEM[q.k];return r&&r.l===0;});
+    var mr=miss.filter(function(q){return b.rules.indexOf(q)>=0}), mn=miss.filter(function(q){return b.nj.indexOf(q)>=0});
+    items=shuffle(mr.slice()).map(function(q){return prep(q,0)}).concat(shuffle(mn.slice()).map(function(q){return prep(q,1)}));
+  } else {
+    var nj=Math.min(b.nj.length,Math.max(1,Math.round(len/6))), nr=Math.min(b.rules.length,len-nj);
+    items=pick(b.rules,nr).map(function(q){return prep(q,0)}).concat(pick(b.nj,nj).map(function(q){return prep(q,1)}));
+  }
+  shuffle(items);
+  tests[sport]={items:items,len:len,missed:!!missedOnly,counted:false};
+}
+function stats(){
+  var b=BANK[cur], all=b.rules.concat(b.nj), seen=0, miss=0;
+  all.forEach(function(q){var r=MEM[q.k]; if(r&&r.s){seen++; if(r.l===0) miss++;}});
+  $("stats").textContent="Question bank: "+b.rules.length+" rules + "+b.nj.length+" NJ/handbook. Seen "+seen+" of "+all.length+". Still missed: "+miss+".";
+  $("review").disabled=miss===0;
+}
+function renderTabs(){
+  var t=$("tabs"); t.innerHTML="";
+  Object.keys(BANK).forEach(function(k){
+    var b=document.createElement("button"); b.type="button"; b.className="tab"; b.textContent=NAMES[k];
+    b.setAttribute("aria-pressed",String(k===cur));
+    b.onclick=function(){cur=k; if(!tests[cur]) newTest(cur,+$("len").value); renderTabs(); renderList();};
+    t.appendChild(b);
+  });
+}
+function updateScore(){
+  var T=tests[cur], n=T.items.length, a=0, c=0;
+  T.items.forEach(function(q){ if(q.pick>=0){a++; if(q.pick===q.a) c++;} });
+  $("correct").textContent=c; $("answered").textContent=a; $("total").textContent=a+" / "+n;
+  $("fill").style.width=(n?a/n*100:0)+"%";
+  var d=$("done"); d.innerHTML="";
+  if(n===0){ d.innerHTML='<div class="done"><h2>Nothing to review</h2><div>You have no missed questions right now.</div></div>'; }
+  else if(a===n){
+    var box=document.createElement("div"); box.className="done";
+    box.innerHTML="<h2>Finished: "+c+" of "+n+" ("+Math.round(c/n*100)+"%)</h2><div>New tests favor questions you haven't seen or got wrong.</div>";
+    var b1=document.createElement("button"); b1.className="btn pri"; b1.type="button"; b1.textContent="New test";
+    b1.onclick=function(){$("newtest").click();};
+    box.appendChild(b1); d.appendChild(box);
+  }
+  stats();
+}
+function paint(card,q){
+  var btns=card.querySelectorAll(".opt"), fb=card.querySelector(".fb"), done=q.pick>=0;
+  btns.forEach(function(b,j){
+    b.disabled=done; b.classList.remove("ok","bad");
+    if(done){ if(j===q.a) b.classList.add("ok"); else if(j===q.pick) b.classList.add("bad"); }
+  });
+  if(done){
+    var right=q.pick===q.a;
+    fb.className="fb "+(right?"ok":"bad");
+    fb.textContent=right?"Correct.":"Not quite. The answer is "+L[q.a].toUpperCase()+": "+q.o[q.a];
+  } else { fb.className="fb"; fb.textContent=""; }
+}
+function renderList(){
+  var list=$("list"); list.innerHTML="";
+  var T=tests[cur], lastPart=-1, n=0;
+  T.items.forEach(function(q,i){
+    var card=document.createElement("div"); card.className="card";
+    var qn=document.createElement("div"); qn.className="qn"; qn.textContent="Question "+(i+1);
+    var p=document.createElement("p"); p.className="q"; p.textContent=q.q;
+    var o=document.createElement("div"); o.className="opts"; o.setAttribute("role","group");
+    q.o.forEach(function(t,j){
+      var b=document.createElement("button"); b.type="button"; b.className="opt";
+      b.innerHTML='<span class="l"></span><span class="t"></span>';
+      b.querySelector(".l").textContent=L[j]+".";
+      b.querySelector(".t").textContent=t;
+      b.onclick=function(){
+        if(q.pick>=0) return;
+        q.pick=j;
+        var r=rec(q.k); r.s++; r.t=Date.now(); if(j===q.a){ r.l=1; } else { r.w++; r.l=0; }
+        saveMem();
+        paint(card,q); updateScore();
+      };
+      o.appendChild(b);
+    });
+    var fb=document.createElement("div"); fb.className="fb"; fb.setAttribute("aria-live","polite");
+    card.appendChild(qn); card.appendChild(p); card.appendChild(o); card.appendChild(fb);
+    list.appendChild(card);
+    paint(card,q);
+  });
+  updateScore();
+}
+
+function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function renderProgress(){
+  var box=$("progview"), html='<h2 class="ph">Your progress</h2>';
+  var tot={s:0,w:0};
+  Object.keys(BANK).forEach(function(sp){
+    var b=BANK[sp], all=b.rules.concat(b.nj), seen=0, right=0, wrong=0, att=0, wr=0, missed=[];
+    all.forEach(function(q){
+      var r=MEM[q.k]; if(!r||!r.s) return;
+      seen++; att+=r.s; wr+=r.w; if(r.l===1) right++; else { wrong++; missed.push({q:q,r:r}); }
+    });
+    tot.s+=att; tot.w+=wr;
+    var acc=att?Math.round((att-wr)/att*100):0;
+    html+='<section class="ps"><h3>'+NAMES[sp]+'</h3>'
+      +'<div class="grid">'
+      +'<div><b>'+seen+'</b><span>seen of '+all.length+'</span></div>'
+      +'<div><b>'+att+'</b><span>answers given</span></div>'
+      +'<div><b>'+(att?acc+"%":"–")+'</b><span>answered right</span></div>'
+      +'<div><b>'+right+'</b><span>right last time</span></div>'
+      +'<div><b>'+wrong+'</b><span>wrong last time</span></div>'
+      +'<div><b>'+(all.length-seen)+'</b><span>not yet seen</span></div>'
+      +'</div><div class="bar"><i style="width:'+(all.length?seen/all.length*100:0)+'%"></i></div>';
+    if(missed.length){
+      missed.sort(function(a,b){return (b.r.t||0)-(a.r.t||0);});
+      html+='<details><summary>Questions to review ('+missed.length+')</summary><ul class="ml">';
+      missed.forEach(function(m){
+        var ans=m.q.o[m.q.a];
+        html+='<li><div>'+esc(m.q.q)+'</div><div class="ma">Answer: '+esc(ans)+' <em>(missed '+m.r.w+' of '+m.r.s+')</em></div></li>';
+      });
+      html+='</ul></details>';
+    }
+    html+='</section>';
+  });
+  html+='<div class="pa"><button class="btn" id="resetp" type="button">Reset my progress</button></div>';
+  box.innerHTML=html;
+  var rb=$("resetp"), armed=false;
+  rb.onclick=function(){
+    if(!armed){ armed=true; rb.textContent="Tap again to erase all progress"; setTimeout(function(){armed=false; if($("resetp")) rb.textContent="Reset my progress";},4000); return; }
+    MEM={}; saveMem(); renderProgress(); stats();
+  };
+}
+function setView(v){
+  document.body.dataset.view=v;
+  $("vquiz").setAttribute("aria-pressed",String(v==="quiz"));
+  $("vprog").setAttribute("aria-pressed",String(v==="prog"));
+  if(v==="prog") renderProgress(); else stats();
+  window.scrollTo(0,0);
+}
+$("vquiz").onclick=function(){setView("quiz");};
+$("vprog").onclick=function(){setView("prog");};
+document.body.dataset.view="quiz";
+$("newtest").onclick=function(){ newTest(cur,+$("len").value); renderList(); window.scrollTo(0,0); };
+$("review").onclick=function(){ newTest(cur,+$("len").value,true); renderList(); window.scrollTo(0,0); };
+$("retake").onclick=function(){
+  var T=tests[cur], old=T.items.map(function(q){return q.k});
+  var all=BANK[cur].rules.concat(BANK[cur].nj), by={};
+  all.forEach(function(q){by[q.k]=q});
+  T.items=T.items.map(function(q){ return prep(by[q.k],q.part); });
+  renderList(); window.scrollTo(0,0);
+};
+newTest(cur,60); renderTabs(); renderList();
+boot();
+</script>
+
+</body></html>
